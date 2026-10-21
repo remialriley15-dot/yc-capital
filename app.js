@@ -1,37 +1,9 @@
-// YC Capital confirmation engine.
-// Setup score = rule agreement, NOT probability of profit.
-function ema(v,p){const k=2/(p+1);let e=v[0];for(let i=1;i<v.length;i++)e=v[i]*k+e*(1-k);return e}
-function rsi(v,p=14){if(v.length<=p)return 50;let g=0,l=0;for(let i=v.length-p;i<v.length;i++){const d=v[i]-v[i-1];d>0?g+=d:l-=d}if(!l)return 100;const rs=(g/p)/(l/p);return 100-100/(1+rs)}
-function atr(a,p=14){const x=a.slice(-Math.min(p+1,a.length));let s=0;for(let i=1;i<x.length;i++)s+=Math.max(x[i].high-x[i].low,Math.abs(x[i].high-x[i-1].close),Math.abs(x[i].low-x[i-1].close));return s/Math.max(1,x.length-1)}
-function structure(a,n=20){const x=a.slice(-n-1,-1);return {high:Math.max(...x.map(v=>+v.high)),low:Math.min(...x.map(v=>+v.low))}}
-function analyze(candles,higherTimeframeCandles=[]){
- if(!candles||candles.length<55)return {decision:'WAIT',confirmed:false,reason:'Need at least 55 closed candles',strength:0};
- const closes=candles.map(x=>+x.close), last=candles.at(-1), prev=candles.at(-2), price=+last.close;
- const e20=ema(closes,20),e50=ema(closes,50),r=rsi(closes),a=atr(candles),s=structure(candles);
- const h= higherTimeframeCandles.length>=55 ? higherTimeframeCandles.map(x=>+x.close):closes;
- const he20=ema(h,20),he50=ema(h,50);
- const bullChecks=[
-  price>e20 && e20>e50, he20>he50, r>=52&&r<=68,
-  price>s.high || (price>+prev.high && +last.close>+last.open),
-  +last.close>+last.open, a>0
- ];
- const bearChecks=[
-  price<e20 && e20<e50, he20<he50, r<=48&&r>=32,
-  price<s.low || (price<+prev.low && +last.close<+last.open),
-  +last.close<+last.open, a>0
- ];
- const bs=bullChecks.filter(Boolean).length, ss=bearChecks.filter(Boolean).length;
- let decision='WAIT', passed=Math.max(bs,ss);
- if(bs>=5 && bullChecks[0]&&bullChecks[1]&&bullChecks[2])decision='BUY';
- if(ss>=5 && bearChecks[0]&&bearChecks[1]&&bearChecks[2])decision='SELL';
- const strength=Math.round(passed/bullChecks.length*100);
- if(decision==='WAIT')return {decision,confirmed:false,strength,reason:'NO TRADE — waiting for trend, momentum, structure and candle confirmation to align',checks:{bull:bullChecks,bear:bearChecks},metrics:{ema20:e20,ema50:e50,rsi:r,atr:a}};
- const slDist=a*1.5, sl=decision==='BUY'?Math.min(price-slDist,s.low-a*.2):Math.max(price+slDist,s.high+a*.2);
- const risk=Math.abs(price-sl),tp1=decision==='BUY'?price+risk*2:price-risk*2,tp2=decision==='BUY'?price+risk*3:price-risk*3;
- return {decision,confirmed:true,strength,entry:price,sl,tp1,tp2,riskReward:'1:2 / 1:3',reason:'SETUP CONFIRMED — required trend, momentum and confirmation rules passed',checks:{bull:bullChecks,bear:bearChecks},metrics:{ema20:e20,ema50:e50,rsi:r,atr:a}};
-}
-window.YCCapitalEngine={analyze};
-
-// UI demo remains clearly separated from live signals.
-const setups=[{d:'BUY'},{d:'SELL'}];
-document.getElementById('demoBtn').onclick=()=>{const s=setups[Math.floor(Math.random()*setups.length)],d=document.getElementById('decision');d.textContent=s.d;d.className='decision '+s.d.toLowerCase();['entry','sl','tp1','tp2'].forEach(id=>document.getElementById(id).textContent='DEMO');document.querySelector('.muted').textContent='DEMO UI ONLY — not a confirmed live trade';document.querySelector('.meter b').textContent='Demo';};
+function ema(v,p){const k=2/(p+1);let e=v[0];for(let i=1;i<v.length;i++)e=v[i]*k+e*(1-k);return e}function rsi(v,p=14){if(v.length<=p)return 50;let g=0,l=0;for(let i=v.length-p;i<v.length;i++){const d=v[i]-v[i-1];d>0?g+=d:l-=d}if(!l)return 100;const rs=(g/p)/(l/p);return 100-100/(1+rs)}function atr(a,p=14){const x=a.slice(-Math.min(p+1,a.length));let s=0;for(let i=1;i<x.length;i++)s+=Math.max(x[i].high-x[i].low,Math.abs(x[i].high-x[i-1].close),Math.abs(x[i].low-x[i-1].close));return s/Math.max(1,x.length-1)}function structure(a,n=20){const x=a.slice(-n-1,-1);return{high:Math.max(...x.map(v=>+v.high)),low:Math.min(...x.map(v=>+v.low))}}function analyze(c,h=[]){if(!c||c.length<55)return{decision:'WAIT',confirmed:false,reason:'Need at least 55 closed candles',strength:0};const z=c.map(x=>+x.close),last=c.at(-1),prev=c.at(-2),price=+last.close,e20=ema(z,20),e50=ema(z,50),r=rsi(z),a=atr(c),s=structure(c),hz=h.length>=55?h.map(x=>+x.close):z,he20=ema(hz,20),he50=ema(hz,50),bc=[price>e20&&e20>e50,he20>he50,r>=52&&r<=68,price>s.high||(price>+prev.high&&+last.close>+last.open),+last.close>+last.open,a>0],sc=[price<e20&&e20<e50,he20<he50,r<=48&&r>=32,price<s.low||(price<+prev.low&&+last.close<+last.open),+last.close<+last.open,a>0],bs=bc.filter(Boolean).length,ss=sc.filter(Boolean).length;let d='WAIT',passed=Math.max(bs,ss);if(bs>=5&&bc[0]&&bc[1]&&bc[2])d='BUY';if(ss>=5&&sc[0]&&sc[1]&&sc[2])d='SELL';const strength=Math.round(passed/bc.length*100);if(d==='WAIT')return{decision:d,confirmed:false,strength,reason:'NO TRADE — waiting for trend, momentum, structure and candle confirmation',metrics:{ema20:e20,ema50:e50,rsi:r,atr:a}};const dist=a*1.5,sl=d==='BUY'?Math.min(price-dist,s.low-a*.2):Math.max(price+dist,s.high+a*.2),risk=Math.abs(price-sl);return{decision:d,confirmed:true,strength,entry:price,sl,tp1:d==='BUY'?price+risk*2:price-risk*2,tp2:d==='BUY'?price+risk*3:price-risk*3,riskReward:'1:2 / 1:3',reason:'SETUP CONFIRMED — required rules passed',metrics:{ema20:e20,ema50:e50,rsi:r,atr:a}}}
+const $=id=>document.getElementById(id),fmt=n=>Number.isFinite(+n)?(+n).toFixed(2):'—';let candles=[],higher=[],symbol=null,ws=null;
+const chart=LightweightCharts.createChart($('liveChart'),{layout:{background:{type:'solid',color:'#0b121d'},textColor:'#6f7e93'},grid:{vertLines:{color:'#101b29'},horzLines:{color:'#101b29'}},rightPriceScale:{borderColor:'#182434'},timeScale:{borderColor:'#182434',timeVisible:true,secondsVisible:false}});
+const series=chart.addSeries(LightweightCharts.CandlestickSeries,{upColor:'#2dd4a3',downColor:'#ff6174',borderVisible:false,wickUpColor:'#2dd4a3',wickDownColor:'#ff6174'});
+new ResizeObserver(()=>chart.applyOptions({width:$('liveChart').clientWidth,height:$('liveChart').clientHeight})).observe($('liveChart'));
+function render(){const x=analyze(candles,higher),d=$('decision');d.textContent=x.decision;d.className='decision '+x.decision.toLowerCase();$('reason').textContent=x.reason;$('strength').textContent=x.strength+'% rules aligned';$('strengthBar').style.width=x.strength+'%';$('entry').textContent=x.confirmed?fmt(x.entry):'—';$('sl').textContent=x.confirmed?fmt(x.sl):'—';$('tp1').textContent=x.confirmed?fmt(x.tp1):'—';$('tp2').textContent=x.confirmed?fmt(x.tp2):'—';$('rr').textContent=x.confirmed?x.riskReward:'—';if(x.metrics){$('trend').textContent=x.metrics.ema20>x.metrics.ema50?'Bullish':'Bearish';$('momentum').textContent='RSI '+x.metrics.rsi.toFixed(1)}}
+function send(o){if(ws&&ws.readyState===1)ws.send(JSON.stringify(o))}
+function connect(){ws=new WebSocket('wss://api.derivws.com/trading/v1/options/ws/public');ws.onopen=()=>{ $('engineStatus').textContent='Deriv connected';$('dataState').textContent='Connected';send({active_symbols:'brief',req_id:1})};ws.onmessage=e=>{const m=JSON.parse(e.data);if(m.error){$('feedStatus').textContent=m.error.message||'Deriv data error';return}if(m.msg_type==='active_symbols'){const list=m.active_symbols||[];const gold=list.find(x=>/gold|xau/i.test((x.underlying_symbol_name||x.display_name||'')+' '+(x.underlying_symbol||x.symbol||'')));if(!gold){$('feedStatus').textContent='Gold not found in Deriv public symbols';$('connectionInfo').textContent='Deriv connected, but its public active-symbol list did not expose a Gold/XAU symbol. YC Capital will not substitute a different price feed automatically.';return}symbol=gold.underlying_symbol||gold.symbol;const name=gold.underlying_symbol_name||gold.display_name||symbol;$('marketTitle').innerHTML=name+' <span>Deriv market data</span>';$('signalSymbol').textContent=name;$('chartLabel').textContent=name+' · 15m';$('feedStatus').textContent='Loading 15m candles…';send({ticks_history:symbol,end:'latest',count:120,style:'candles',granularity:900,req_id:2});send({ticks_history:symbol,end:'latest',count:80,style:'candles',granularity:3600,req_id:3});send({ticks:symbol,subscribe:1,req_id:4})}else if(m.msg_type==='candles'){const arr=(m.candles||[]).map(x=>({time:+(x.epoch||x.time),open:+x.open,high:+x.high,low:+x.low,close:+x.close})).filter(x=>x.time&&Number.isFinite(x.close));if(m.echo_req&&m.echo_req.granularity===3600){higher=arr}else{candles=arr;series.setData(candles);chart.timeScale().fitContent();$('feedStatus').textContent='Live Deriv feed';$('connectionInfo').textContent='Using '+symbol+' from Deriv public market data. Signals are analysis only; enter trades manually in MT5.'}render()}else if(m.msg_type==='tick'&&symbol){const q=+m.tick.quote,t=+m.tick.epoch,b=Math.floor(t/900)*900,last=candles.at(-1);if(!last||b>last.time)candles.push({time:b,open:q,high:q,low:q,close:q});else{last.high=Math.max(last.high,q);last.low=Math.min(last.low,q);last.close=q}series.update(candles.at(-1));render()}};ws.onclose=()=>{ $('engineStatus').textContent='Reconnecting…';$('dataState').textContent='Offline';setTimeout(connect,3000)};ws.onerror=()=>{$('feedStatus').textContent='Connection error'}}
+$('refreshBtn').onclick=render;connect();
